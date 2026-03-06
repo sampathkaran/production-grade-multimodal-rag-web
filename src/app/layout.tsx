@@ -34,7 +34,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider>    
+        <ClerkProvider afterSignOutUrl={"/sign-in"}> //after logout redirect to signin
         {children}
         </ClerkProvider>
       </body>
