@@ -7,6 +7,8 @@ import {
   ClerkProvider,
 } from '@clerk/nextjs'
 
+//import toaster components
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,15 +31,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-
+  <ClerkProvider afterSignOutUrl={"/sign-in"}> 
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ClerkProvider afterSignOutUrl={"/sign-in"}> //after logout redirect to signin
+      >        
         {children}
-        </ClerkProvider>
+        <Toaster position="top-center"/>
       </body>
     </html>
+    </ClerkProvider>
   );
 }
