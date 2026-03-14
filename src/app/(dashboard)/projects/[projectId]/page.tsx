@@ -159,11 +159,43 @@ function ProjectPage({params}:ProjectPageProps) {
     // project setting method
     // handle draft settings
     const handleDraftSettings = (updates: any) => {
-        console.log("Update local settings", updates);
+        setData((prev) => {
+         // if no settings exists, we can't uppdate them
+         if (!prev.settings){
+            console.warn("Cannot update settings: not loaded yet")
+            return prev
+         }
+        // merge the updates to existing settings
+        return {
+            ...prev,
+            settings:{
+               ...prev.settings,
+               ...updates 
+            }
+        }
+
+        })
     }
 
     const handlePublishSettings = async() => {
-        console.log("Make API call to publish settings ");
+       if(!userId || !data.settings){
+        toast.error("Cannot save settings")        
+       }
+
+       try{
+        const token = await getToken()
+
+        const result = await apiClient.put(`/api/projects/${projectId}/project_settings`, data.settings, token)
+ 
+         setData((prev) => ({
+            ...prev,
+            settings: result.data
+         }))
+
+         toast.success("Settings saved successfully")
+       } catch(err){
+         toast.error("Failed to save settings")
+       }
     }
 
     const selectedDocument = selectedDocumentId ? data.documents.find((doc ) => doc.id == selectedDocumentId) : null;

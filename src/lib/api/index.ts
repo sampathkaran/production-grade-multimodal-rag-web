@@ -43,6 +43,31 @@ export const apiClient = {
        return response.json();
     },
 
+    put: async (endpoint: string, data: any, token?: string | null) => {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",// we are sending a json payload
+        };
+        
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify(data),
+        });
+
+       if (!response.ok){
+         throw new Error(`API Error: ${response.status}`);
+       } 
+
+       return response.json();
+    },
+
+
+
+
     delete : async(endpoint: string, token?: string | null) => {
         const headers: HeadersInit = {};
         
