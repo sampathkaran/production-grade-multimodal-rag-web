@@ -139,16 +139,100 @@ function ProjectPage({params}:ProjectPageProps) {
     
     // document methods
     // document upload method files 
-    const handleDocumentUpload = async(files: File[]) => {
-        console.log("Upload files", files)
+    const handleDocumentUpload = async(files: File[]) => { // File is a buit in browser object
+       if(!userId) return;
+       const token = await getToken();
+       const uploadedDocuments: ProjectDocument[] = [];
+
+       // process all file uploads parallel to save time
+       // Loop through files
+       const uploadPromises = files.map(async(file) => {
+          try {
+            console.log("file: ", file)
+            // Step 1: Get the presiged URL
+            const uploadData = await apiClient.post(`/api/projects/${projectId}/files/presigned_url`, {
+                filename: file.name, //browser build the file.name from File object
+                file_size: file.size,
+                file_type: file.type
+            }, token)
+         
+            const {presigned_url, s3_key} = uploadData.data;
+            console.log("presigned_url:", presigned_url)
+            console.log("s3_key:", s3_key)
+
+            // Step 2: Upload the file to S3
+            await apiClient.uploadToS3(presigned_url, file);
+
+            // Step 3: Notify the server the upload is completed(starts the background processing pipeline)
+            const updatedDocument = await apiClient.put(`/api/projects/${projectId}/files/uploaded_confirm`,{
+                s3_key,
+                
+            },token)
+            
+            uploadedDocuments.push(updatedDocument)
+          }catch(err){
+            toast.error(`Failed to upload $(file.name)`)
+          }
+       });
+
+       await Promise.allSettled(uploadPromises);
+
+       // update the local state with succesfully uploaded documents
+       if (uploadedDocuments.length > 0){
+        setData((prev) => ({
+            ...prev,
+            documents: [...uploadedDocuments, ...prev.documents],
+
+        }));
+
+        toast.success(`$(uploadedDocuments.length) file(s) uploaded`)
+       }
+
     };
     // delete the document
     const handleDocumentDelete = async(documentId: string) => {
-        console.log("Document deleted", documentId)
+        if(!userId) return;
+
+        try{
+            const token = await getToken()
+            await apiClient.delete(`/api/projects/${projectId}/files/${documentId}`, token)
+
+            // update local state -remove the delete document from UI list
+            setData((prev) => ({
+                ...prev,
+                documents: prev.documents.filter((doc) => doc.id !== documentId)
+            }))
+
+            toast.success("Document deleted successfully")
+        }catch(err){
+            toast.error("Document deletion failed")
+        }
+
     };
     // provide url for upload
     const handleUrlAdd = async (url: string) => {
-        console.log("Add URL", url);
+        if(!userId) return;
+
+        try{
+            const token = await getToken()
+
+            const result = await apiClient.post(`/api/projects/${projectId}/urls`, {
+                url
+            }, token)
+
+            const newDocument = result.data
+
+            // update local state
+            setData((prev) => ({
+                ...prev,
+                documents: [newDocument, ...prev.documents]
+            }))
+            
+            toast.success("Website added successfully")
+            console.log(result)
+        } catch(err){
+            toast.error("Faile to add website")
+        }
     }
     // top view a document
     const handleOpenDocument = (documentId: string) => {
